@@ -10,7 +10,7 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
@@ -29,7 +29,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
         // Set the view's delegate
         sceneView.delegate = self
-        sceneView.session.delegate = self
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
@@ -137,11 +136,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
     }
     
-    // MARK: ARSessionDelegate
-
-    func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        let cameraTransform = frame.camera.transform
-        startPoint = SCNVector3.positionFromTransform(cameraTransform)
+    func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        guard let pointOfView = sceneView.pointOfView else { return }
+        let transform = pointOfView.transform
+        let orientation = SCNVector3(-transform.m31, -transform.m32, transform.m33)
+        let location = SCNVector3(transform.m41, transform.m42, transform.m43)
+        let currentPositionOfCamera = orientation + location
+        print(currentPositionOfCamera)
+        
+        startPoint = currentPositionOfCamera
     }
 }
 
