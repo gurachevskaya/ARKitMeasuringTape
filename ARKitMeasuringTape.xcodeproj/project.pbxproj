@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		18D8F53B283696F8009C3516 /* FocusSquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414987E1F4BE60B004CE0C0 /* FocusSquare.swift */; };
+		18D8F53C28369701009C3516 /* Models.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 2414987D1F4BE60B004CE0C0 /* Models.scnassets */; };
+		18D8F53D28369707009C3516 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2414987F1F4BE60B004CE0C0 /* Utilities.swift */; };
 		244846011F45774900E27598 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244846001F45774900E27598 /* AppDelegate.swift */; };
 		244846051F45774900E27598 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244846041F45774900E27598 /* ViewController.swift */; };
 		244846081F45774900E27598 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 244846061F45774900E27598 /* Main.storyboard */; };
@@ -34,9 +37,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		2414987D1F4BE60B004CE0C0 /* Models.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; name = Models.scnassets; path = "Measuring Tape Req/Models.scnassets"; sourceTree = SOURCE_ROOT; };
-		2414987E1F4BE60B004CE0C0 /* FocusSquare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FocusSquare.swift; path = "Measuring Tape Req/FocusSquare.swift"; sourceTree = SOURCE_ROOT; };
-		2414987F1F4BE60B004CE0C0 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Utilities.swift; path = "Measuring Tape Req/Utilities.swift"; sourceTree = SOURCE_ROOT; };
+		2414987D1F4BE60B004CE0C0 /* Models.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; name = Models.scnassets; path = ARKitMeasuringTape/Models.scnassets; sourceTree = SOURCE_ROOT; };
+		2414987E1F4BE60B004CE0C0 /* FocusSquare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FocusSquare.swift; path = ARKitMeasuringTape/FocusSquare.swift; sourceTree = SOURCE_ROOT; };
+		2414987F1F4BE60B004CE0C0 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Utilities.swift; path = ARKitMeasuringTape/Utilities.swift; sourceTree = SOURCE_ROOT; };
 		244845FD1F45774900E27598 /* ARKitMeasuringTape.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ARKitMeasuringTape.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		244846001F45774900E27598 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		244846041F45774900E27598 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -236,6 +239,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2448460D1F45774900E27598 /* LaunchScreen.storyboard in Resources */,
+				18D8F53C28369701009C3516 /* Models.scnassets in Resources */,
 				2448460A1F45774900E27598 /* Assets.xcassets in Resources */,
 				244846081F45774900E27598 /* Main.storyboard in Resources */,
 			);
@@ -263,6 +267,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				244846051F45774900E27598 /* ViewController.swift in Sources */,
+				18D8F53B283696F8009C3516 /* FocusSquare.swift in Sources */,
+				18D8F53D28369707009C3516 /* Utilities.swift in Sources */,
 				244846011F45774900E27598 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -364,7 +370,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -413,7 +419,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
@@ -425,7 +431,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q7Q43CUMWT;
 				INFOPLIST_FILE = ARKitMeasuringTape/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.iosRevisited.ARKitMeasuringTape;
@@ -439,7 +445,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q7Q43CUMWT;
 				INFOPLIST_FILE = ARKitMeasuringTape/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.iosRevisited.ARKitMeasuringTape;

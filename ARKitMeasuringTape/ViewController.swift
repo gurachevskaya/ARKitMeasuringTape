@@ -10,7 +10,7 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
@@ -29,6 +29,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Set the view's delegate
         sceneView.delegate = self
+        sceneView.session.delegate = self
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
@@ -51,9 +52,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        let configuration = ARWorldTrackingSessionConfiguration()
+        let configuration = ARWorldTrackingConfiguration()
         
-        configuration.planeDetection = .horizontal
+        configuration.planeDetection = .vertical
         
         sceneView.session.run(configuration)
     }
@@ -91,7 +92,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 
                 let hitPointPosition = SCNVector3.positionFromTransform(anchor.worldTransform)
                 
-                if startPoint == nil && endPoint == nil {
+                if endPoint == nil {
                     for child in sceneView.scene.rootNode.childNodes {
                         if child.name == "Start" || child.name == "End" {
                             child.removeFromParentNode()
@@ -100,31 +101,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                     }
                 }
                 
-                if startPoint == nil {
-                     focusSquare.hide()
-                    startPoint = hitPointPosition
-                    let node = createCrossNode(size: 0.01, color:UIColor.blue, horizontal:false)
-                    node.position = startPoint!
-                    node.name = "Start"
-                    sceneView.scene.rootNode.addChildNode(node)
-                    
-                }else {
-                    endPoint = hitPointPosition
-                    let node = createCrossNode(size: 0.01, color:UIColor.red, horizontal:false)
-                    node.position = endPoint!
-                    node.name = "End"
-                    sceneView.scene.rootNode.addChildNode(node)
-                }
+                endPoint = hitPointPosition
+                let node = createCrossNode(size: 0.01, color:UIColor.red, horizontal: false)
+                node.position = endPoint!
+                node.name = "End"
+                sceneView.scene.rootNode.addChildNode(node)
                 
-                if endPoint != nil {
+                if endPoint != nil, startPoint != nil {
                     setupFocusSquare()
                     let distance = self.getDistanceBetween(startPoint: startPoint!, endPoint: endPoint!)
                     distanceLabel.text = String(format: "Distance(Approx) = %.2f cm",distance! * 100)
                     
-                    startPoint = nil
                     endPoint = nil
                 }
-                
             }
         }
     }
@@ -140,12 +129,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return distance
     }
     
-    // MARK: - ARSCNViewDelegate
+    // MARK: ARSCNViewDelegate
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         DispatchQueue.main.async {
             self.updateFocusSquare()
         }
+    }
+    
+    // MARK: ARSessionDelegate
+
+    func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        let cameraTransform = frame.camera.transform
+        startPoint = SCNVector3.positionFromTransform(cameraTransform)
     }
 }
 
@@ -178,7 +174,8 @@ extension ViewController {
         var featureHitTestPosition: SCNVector3?
         var highQualityFeatureHitTestResult = false
         
-        let highQualityfeatureHitTestResults = sceneView.hitTestWithFeatures(position, coneOpeningAngleInDegrees: 18, minDistance: 0.2, maxDistance: 2.0)
+        let highQualityfeatureHitTestResults = sceneView.hitTestWithFeatures(position, coneOpeningAngleInDegrees: 18, minDistance: 1, maxDistance: 1000)
+
         
         if !highQualityfeatureHitTestResults.isEmpty {
             let result = highQualityfeatureHitTestResults[0]
