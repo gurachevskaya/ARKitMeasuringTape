@@ -10,20 +10,27 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
+    var grids = [Grid]()
     
     var focusSquare = FocusSquare()
     
     var dragOnInfinitePlanesEnabled = false
     
     let distanceLabel = UILabel()
-    
+    let addressLabel = UILabel()
+
     var startPoint : SCNVector3? = nil
-    
     var endPoint : SCNVector3? = nil
     
+    let locationManager = CLLocationManager()
+    let geocoder = CLGeocoder()
+    let locationHelper = LocationHelper()
+    var userLocation = CLLocation()
+    var userHeading = CLLocationDirection()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -33,11 +40,21 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
         
+        configLocationManager()
+        
         setupFocusSquare()
         addDistanceLabel()
+        addAddressLabel()
     }
     
-    func addDistanceLabel() {
+    private func configLocationManager() {
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.startUpdatingHeading()
+        locationManager.requestWhenInUseAuthorization()
+    }
+    
+    private func addDistanceLabel() {
         let margins = sceneView.layoutMarginsGuide
         sceneView.addSubview(distanceLabel)
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -48,13 +65,25 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         distanceLabel.text = "Distance = ??"
     }
     
+    private func addAddressLabel() {
+        let margins = sceneView.layoutMarginsGuide
+        sceneView.addSubview(addressLabel)
+        addressLabel.translatesAutoresizingMaskIntoConstraints = false
+        addressLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor, constant: 10.0).isActive = true
+        addressLabel.topAnchor.constraint(equalTo: distanceLabel.bottomAnchor, constant: 10.0).isActive = true
+        addressLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        addressLabel.textColor = UIColor.white
+        addressLabel.text = "Address = ??"
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
         let configuration = ARWorldTrackingConfiguration()
         
         configuration.planeDetection = .vertical
-        
+        sceneView.showsStatistics = true
+        sceneView.debugOptions = ARSCNDebugOptions.showFeaturePoints
         sceneView.session.run(configuration)
     }
     
@@ -64,19 +93,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Pause the view's session
         sceneView.session.pause()
     }
-    
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Release any cached data, images, etc that aren't in use.
-    }
-    
-    func setupFocusSquare() {
+
+    private func setupFocusSquare() {
         focusSquare.unhide()
         focusSquare.removeFromParentNode()
         sceneView.scene.rootNode.addChildNode(focusSquare)
     }
     
-    func updateFocusSquare() {
+    private func updateFocusSquare() {
         let (worldPosition, planeAnchor, _) = worldPositionFromScreenPosition(view.center, objectPos: focusSquare.position)
         if let worldPosition = worldPosition {
             focusSquare.update(for: worldPosition, planeAnchor: planeAnchor, camera: sceneView.session.currentFrame?.camera)
@@ -110,15 +134,36 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                     setupFocusSquare()
                     let distance = self.getDistanceBetween(startPoint: startPoint!, endPoint: endPoint!)
                     distanceLabel.text = String(format: "Distance(Approx) = %.2f cm",distance! * 100)
-                    
                     endPoint = nil
+                    
+                    let testDistance = 180.0
+//                    findAddress(distance ?? 0)
+                    findAddress(testDistance)
                 }
             }
         }
     }
     
-    
-    func getDistanceBetween(startPoint: SCNVector3, endPoint: SCNVector3) -> Double? {
+    private func findAddress(_ distance: Double) {
+        let coordinates = locationHelper.coordinates(startingCoordinates: userLocation.coordinate, atDistance: distance, atAngle: userHeading)
+        
+        let destinationLocation = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        
+        geocoder.reverseGeocodeLocation(destinationLocation, completionHandler: { [weak self] (placemarks, error) in
+            if error == nil {
+                let firstLocation = placemarks?[0]
+                print(firstLocation)
+                self?.addressLabel.text = firstLocation?.name
+                //                             completionHandler(firstLocation)
+            }
+            else {
+                // An error occurred during geocoding.
+                self?.addressLabel.text = error?.localizedDescription
+            }
+        })
+    }
+  
+    private func getDistanceBetween(startPoint: SCNVector3, endPoint: SCNVector3) -> Double? {
         var distance : Double? = nil
         let x = powf((endPoint.x - startPoint.x), 2.0)
         let y = powf((endPoint.y - startPoint.y), 2.0)
@@ -142,15 +187,65 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let orientation = SCNVector3(-transform.m31, -transform.m32, transform.m33)
         let location = SCNVector3(transform.m41, transform.m42, transform.m43)
         let currentPositionOfCamera = orientation + location
-        print(currentPositionOfCamera)
         
         startPoint = currentPositionOfCamera
     }
+    
+    
+//    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+//        let grid = Grid(anchor: anchor as! ARPlaneAnchor)
+//        self.grids.append(grid)
+//        node.addChildNode(grid)
+//    }
+//
+//    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+//        let grid = self.grids.filter { grid in
+//            return grid.anchor.identifier == anchor.identifier
+//        }.first
+//
+//        guard let foundGrid = grid else {
+//            return
+//        }
+//
+//        foundGrid.update(anchor: anchor as! ARPlaneAnchor)
+//    }
+    
+    //MARK: CLLocationManager
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print(error.localizedDescription)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        if status == .authorizedWhenInUse {
+            locationManager.requestLocation()
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        let testHeading = 68.0
+        userHeading = testHeading
+
+//        userHeading = newHeading.magneticHeading
+    }
+       
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last {
+            let testLocation = CLLocation(latitude: CLLocationDegrees(floatLiteral: 52.235555), longitude: CLLocationDegrees(floatLiteral: 21.006100)) // Bagno 3, Warsaw
+            //            52.241145 21.000361 precise location Forum
+            
+            userLocation = testLocation
+            
+            //            userLocation = location
+        }
+        else {
+            // No location was available.
+            print("No location was available")
+        }
+    }
 }
 
-
 extension ViewController {
-    
     
     func worldPositionFromScreenPosition(_ position: CGPoint,
                                          objectPos: SCNVector3?,
@@ -221,6 +316,5 @@ extension ViewController {
         
         return (nil, nil, false)
     }
-    
 }
 
