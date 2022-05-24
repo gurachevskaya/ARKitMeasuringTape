@@ -50,8 +50,8 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
     private func configLocationManager() {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        locationManager.startUpdatingHeading()
         locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingHeading()
     }
     
     private func addDistanceLabel() {
@@ -71,8 +71,10 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
         addressLabel.translatesAutoresizingMaskIntoConstraints = false
         addressLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor, constant: 10.0).isActive = true
         addressLabel.topAnchor.constraint(equalTo: distanceLabel.bottomAnchor, constant: 10.0).isActive = true
+        addressLabel.trailingAnchor.constraint(equalTo: margins.trailingAnchor, constant: 10.0).isActive = true
         addressLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
         addressLabel.textColor = UIColor.white
+        addressLabel.numberOfLines = 0
         addressLabel.text = "Address = ??"
     }
     
@@ -153,8 +155,7 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
             if error == nil {
                 let firstLocation = placemarks?[0]
                 print(firstLocation)
-                self?.addressLabel.text = firstLocation?.name
-                //                             completionHandler(firstLocation)
+                self?.addressLabel.text = firstLocation?.description
             }
             else {
                 // An error occurred during geocoding.
