@@ -223,20 +223,12 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        let testHeading = 68.0
-        userHeading = testHeading
-
-//        userHeading = newHeading.magneticHeading
+        userHeading = newHeading.magneticHeading
     }
        
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
-            let testLocation = CLLocation(latitude: CLLocationDegrees(floatLiteral: 52.235555), longitude: CLLocationDegrees(floatLiteral: 21.006100)) // Bagno 3, Warsaw
-            //            52.241145 21.000361 precise location Forum
-            
-            userLocation = testLocation
-            
-            //            userLocation = location
+            userLocation = location
         }
         else {
             // No location was available.
