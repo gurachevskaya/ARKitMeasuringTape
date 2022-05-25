@@ -10,7 +10,7 @@ import UIKit
 import SceneKit
 import ARKit
 
-final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     var grids = [Grid]()
@@ -30,21 +30,39 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
     let locationHelper = LocationHelper()
     var userLocation = CLLocation()
     var userHeading = CLLocationDirection()
+    
+    // VisionObjectRecognition
+    
+    @IBOutlet var previewView: UIView!
+    
+    var detectionOverlay: CALayer! = nil
+    var requests = [VNRequest]()
+    
+    var bufferSize: CGSize = .zero
+    var rootLayer: CALayer! = nil
+    
+    let session = AVCaptureSession()
+    var previewLayer: AVCaptureVideoPreviewLayer! = nil
+    let videoDataOutput = AVCaptureVideoDataOutput()
+    
+    let videoDataOutputQueue = DispatchQueue(label: "VideoDataOutput", qos: .userInitiated, attributes: [], autoreleaseFrequency: .workItem)
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        setupAVCapture()
+                
         // Set the view's delegate
-        sceneView.delegate = self
+//        sceneView.delegate = self
         
         // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
+//        sceneView.showsStatistics = false
         
         configLocationManager()
         
-        setupFocusSquare()
-        addDistanceLabel()
-        addAddressLabel()
+//        setupFocusSquare()
+//        addDistanceLabel()
+//        addAddressLabel()
     }
     
     private func configLocationManager() {
@@ -81,12 +99,12 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        let configuration = ARWorldTrackingConfiguration()
-        
-        configuration.planeDetection = .vertical
-        sceneView.showsStatistics = true
-        sceneView.debugOptions = ARSCNDebugOptions.showFeaturePoints
-        sceneView.session.run(configuration)
+//        let configuration = ARWorldTrackingConfiguration()
+//        
+//        configuration.planeDetection = .vertical
+//        sceneView.showsStatistics = true
+//        sceneView.debugOptions = ARSCNDebugOptions.showFeaturePoints
+//        sceneView.session.run(configuration)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -211,7 +229,7 @@ final class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManag
 //        foundGrid.update(anchor: anchor as! ARPlaneAnchor)
 //    }
     
-    //MARK: CLLocationManager
+    // MARK: CLLocationManager
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print(error.localizedDescription)
