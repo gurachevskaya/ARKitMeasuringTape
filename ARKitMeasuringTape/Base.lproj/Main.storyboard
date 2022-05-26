@@ -4,7 +4,6 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -12,48 +11,17 @@
         <scene sceneID="tXr-a1-R10">
             <objects>
                 <viewController id="BV1-FR-VrT" customClass="ViewController" customModule="ARKitMeasuringTape" customModuleProvider="target" sceneMemberID="viewController">
-                    <layoutGuides>
-                        <viewControllerLayoutGuide type="top" id="sl7-iX-Bkw"/>
-                        <viewControllerLayoutGuide type="bottom" id="zHm-oU-YI4"/>
-                    </layoutGuides>
-                    <view key="view" contentMode="scaleToFill" id="9Eu-cS-gao">
+                    <arscnView key="view" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" id="BrB-h1-WRS">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                        <subviews>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="DAc-zv-hhk">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
-                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                            </view>
-                            <arscnView hidden="YES" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qLN-iC-Ki0">
-                                <rect key="frame" x="-12" y="-1" width="375" height="667"/>
-                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                            </arscnView>
-                        </subviews>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                        <constraints>
-                            <constraint firstItem="zHm-oU-YI4" firstAttribute="top" secondItem="DAc-zv-hhk" secondAttribute="bottom" id="4oR-4N-2AP"/>
-                            <constraint firstAttribute="trailing" secondItem="qLN-iC-Ki0" secondAttribute="trailing" id="DRE-Mg-oTg"/>
-                            <constraint firstItem="zHm-oU-YI4" firstAttribute="top" secondItem="qLN-iC-Ki0" secondAttribute="bottom" id="G9N-Ui-E63"/>
-                            <constraint firstItem="DAc-zv-hhk" firstAttribute="top" secondItem="sl7-iX-Bkw" secondAttribute="bottom" id="T7W-Ym-wDp"/>
-                            <constraint firstItem="qLN-iC-Ki0" firstAttribute="top" secondItem="sl7-iX-Bkw" secondAttribute="bottom" id="UMT-zV-xgt"/>
-                            <constraint firstAttribute="trailing" secondItem="DAc-zv-hhk" secondAttribute="trailing" id="VgG-C0-gvg"/>
-                            <constraint firstItem="DAc-zv-hhk" firstAttribute="leading" secondItem="9Eu-cS-gao" secondAttribute="leading" id="ctt-x8-KdB"/>
-                            <constraint firstItem="qLN-iC-Ki0" firstAttribute="leading" secondItem="9Eu-cS-gao" secondAttribute="leading" id="iZd-yr-qEd"/>
-                        </constraints>
-                    </view>
+                    </arscnView>
                     <connections>
-                        <outlet property="previewView" destination="DAc-zv-hhk" id="5sG-IA-oqn"/>
-                        <outlet property="sceneView" destination="qLN-iC-Ki0" id="NnF-a8-Amo"/>
+                        <outlet property="sceneView" destination="BrB-h1-WRS" id="5nT-qQ-ynl"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="SZV-WD-TEh" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="21.600000000000001" y="61.619190404797607"/>
+            <point key="canvasLocation" x="22" y="62"/>
         </scene>
     </scenes>
-    <resources>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-    </resources>
 </document>

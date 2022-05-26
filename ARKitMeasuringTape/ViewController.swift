@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import SceneKit
 import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDelegate {
@@ -32,37 +31,73 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     var userHeading = CLLocationDirection()
     
     // VisionObjectRecognition
+        
+    private lazy var objectsRecognizer = ObjectRecognizer()
     
-    @IBOutlet var previewView: UIView!
-    
-    var detectionOverlay: CALayer! = nil
-    var requests = [VNRequest]()
-    
-    var bufferSize: CGSize = .zero
-    var rootLayer: CALayer! = nil
-    
-    let session = AVCaptureSession()
-    var previewLayer: AVCaptureVideoPreviewLayer! = nil
-    let videoDataOutput = AVCaptureVideoDataOutput()
-    
-    let videoDataOutputQueue = DispatchQueue(label: "VideoDataOutput", qos: .userInitiated, attributes: [], autoreleaseFrequency: .workItem)
+    private let dispatchQueueML = DispatchQueue(label: "com.hw.dispatchqueueml") // A Serial Queue
+    private var detectionOverlay: CALayer! = nil
+    private var bufferSize: CGSize = .zero
+    private var rootLayer: CALayer! = nil
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        setupAVCapture()
-                
+                                
         // Set the view's delegate
-//        sceneView.delegate = self
-        
-        // Show statistics such as fps and timing information
-//        sceneView.showsStatistics = false
-        
+        sceneView.delegate = self
+                
         configLocationManager()
         
-//        setupFocusSquare()
-//        addDistanceLabel()
-//        addAddressLabel()
+        setupFocusSquare()
+        addDistanceLabel()
+        addAddressLabel()
+        
+        // Begin Loop to Update CoreML
+        setupAVCapture()
+    }
+    
+    private func setupAVCapture() {
+        setupVisionVisualParts()
+        loopCoreMLUpdate()
+    }
+    
+    func setupVisionVisualParts() {
+        setupLayers()
+        updateLayerGeometry()
+    }
+    
+    private func setupLayers() {
+        rootLayer = view.layer
+
+        detectionOverlay = CALayer() // container layer that has all the renderings of the observations
+        detectionOverlay.name = "DetectionOverlay"
+        detectionOverlay.bounds = CGRect(x: 0.0,
+                                         y: 0.0,
+                                         width: bufferSize.width,
+                                         height: bufferSize.height)
+        detectionOverlay.position = CGPoint(x: rootLayer.bounds.midX, y: rootLayer.bounds.midY)
+        rootLayer.addSublayer(detectionOverlay)
+    }
+    
+    private func updateLayerGeometry() {
+        let bounds = rootLayer.bounds
+        var scale: CGFloat
+        
+        let xScale: CGFloat = bounds.size.width / bufferSize.height
+        let yScale: CGFloat = bounds.size.height / bufferSize.width
+        
+        scale = fmax(xScale, yScale)
+        if scale.isInfinite {
+            scale = 1.0
+        }
+        CATransaction.begin()
+        CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
+        
+        // rotate the layer into screen orientation and scale and mirror
+        detectionOverlay.setAffineTransform(CGAffineTransform(rotationAngle: CGFloat(.pi / 2.0)).scaledBy(x: scale, y: -scale))
+        // center the layer
+        detectionOverlay.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        
+        CATransaction.commit()
     }
     
     private func configLocationManager() {
@@ -99,12 +134,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-//        let configuration = ARWorldTrackingConfiguration()
-//        
-//        configuration.planeDetection = .vertical
-//        sceneView.showsStatistics = true
-//        sceneView.debugOptions = ARSCNDebugOptions.showFeaturePoints
-//        sceneView.session.run(configuration)
+        let configuration = ARWorldTrackingConfiguration()
+        configuration.planeDetection = .vertical
+        sceneView.session.run(configuration)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -190,6 +222,84 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
         
         distance = sqrt(Double(x + y + z))
         return distance
+    }
+    
+    // MARK:  CoreML Vision Handling
+      
+      func loopCoreMLUpdate() {
+          // Continuously run CoreML whenever it's ready. (Preventing 'hiccups' in Frame Rate)
+          
+          dispatchQueueML.async {
+              // 1. Run Update.
+              self.updateCoreML()
+              
+              // 2. Loop this function.
+              self.loopCoreMLUpdate()
+          }
+      }
+    
+    private func updateCoreML() {
+        guard let buffer = sceneView.session.currentFrame?.capturedImage else {
+            return
+        }
+        objectsRecognizer.recognize(fromPixelBuffer: buffer) { objects in
+            DispatchQueue.main.async(execute: { [weak self] in
+                self?.drawVisionRequestResults(objects)
+            })
+        }
+    }
+    
+    private func drawVisionRequestResults(_ results: [Any]) {
+        CATransaction.begin()
+        CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
+        detectionOverlay.sublayers = nil // remove all the old recognized objects
+        for observation in results where observation is RecognizedObject {
+            guard let object = observation as? RecognizedObject else {
+                continue
+            }
+            
+            let objectBounds = VNImageRectForNormalizedRect(object.bounds, Int(bufferSize.width), Int(bufferSize.height))
+            
+            let shapeLayer = self.createRoundedRectLayerWithBounds(objectBounds)
+            
+            let textLayer = self.createTextSubLayerInBounds(
+                objectBounds,
+                identifier: object.label,
+                confidence: object.confidence
+            )
+            shapeLayer.addSublayer(textLayer)
+            detectionOverlay.addSublayer(shapeLayer)
+        }
+        self.updateLayerGeometry()
+        CATransaction.commit()
+    }
+    
+    private func createTextSubLayerInBounds(_ bounds: CGRect, identifier: String, confidence: VNConfidence) -> CATextLayer {
+        let textLayer = CATextLayer()
+        textLayer.name = "Object Label"
+        let formattedString = NSMutableAttributedString(string: String(format: "\(identifier)\nConfidence:  %.2f", confidence))
+        let largeFont = UIFont(name: "Helvetica", size: 24.0)!
+        formattedString.addAttributes([NSAttributedString.Key.font: largeFont], range: NSRange(location: 0, length: identifier.count))
+        textLayer.string = formattedString
+        textLayer.bounds = CGRect(x: 0, y: 0, width: bounds.size.height - 10, height: bounds.size.width - 10)
+        textLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        textLayer.shadowOpacity = 0.7
+        textLayer.shadowOffset = CGSize(width: 2, height: 2)
+        textLayer.foregroundColor = CGColor(colorSpace: CGColorSpaceCreateDeviceRGB(), components: [0.0, 0.0, 0.0, 1.0])
+        textLayer.contentsScale = 2.0 // retina rendering
+        // rotate the layer into screen orientation and scale and mirror
+        textLayer.setAffineTransform(CGAffineTransform(rotationAngle: CGFloat(.pi / 2.0)).scaledBy(x: 1.0, y: -1.0))
+        return textLayer
+    }
+    
+    private func createRoundedRectLayerWithBounds(_ bounds: CGRect) -> CALayer {
+        let shapeLayer = CALayer()
+        shapeLayer.bounds = bounds
+        shapeLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        shapeLayer.name = "Found Object"
+        shapeLayer.backgroundColor = CGColor(colorSpace: CGColorSpaceCreateDeviceRGB(), components: [1.0, 1.0, 0.2, 0.4])
+        shapeLayer.cornerRadius = 7
+        return shapeLayer
     }
     
     // MARK: ARSCNViewDelegate
