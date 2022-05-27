@@ -8,6 +8,7 @@
 
 import UIKit
 import ARKit
+import ARCore
 
 class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDelegate {
 
@@ -19,6 +20,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     var dragOnInfinitePlanesEnabled = false
     
     let distanceLabel = UILabel()
+    let myLocationLabel = UILabel()
     let addressLabel = UILabel()
 
     var startPoint : SCNVector3? = nil
@@ -38,6 +40,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     private var detectionOverlay: CALayer! = nil
     private var bufferSize: CGSize = .zero
     private var rootLayer: CALayer! = nil
+    
+    // GAR
+    
+    var garSession: GARSession?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,6 +55,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
         
         setupFocusSquare()
         addDistanceLabel()
+        addMyLocationLabel()
         addAddressLabel()
         
         // Begin Loop to Update CoreML
@@ -66,7 +73,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     }
     
     private func setupLayers() {
-        rootLayer = view.layer
+        rootLayer = sceneView.layer
 
         detectionOverlay = CALayer() // container layer that has all the renderings of the observations
         detectionOverlay.name = "DetectionOverlay"
@@ -112,10 +119,23 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
         sceneView.addSubview(distanceLabel)
         distanceLabel.translatesAutoresizingMaskIntoConstraints = false
         distanceLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor, constant: 10.0).isActive = true
-        distanceLabel.topAnchor.constraint(equalTo: margins.topAnchor, constant: 10.0).isActive = true
+        distanceLabel.topAnchor.constraint(equalTo: margins.topAnchor, constant: 0).isActive = true
         distanceLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
         distanceLabel.textColor = UIColor.white
         distanceLabel.text = "Distance = ??"
+    }
+    
+    private func addMyLocationLabel() {
+        let margins = sceneView.layoutMarginsGuide
+        sceneView.addSubview(myLocationLabel)
+        myLocationLabel.translatesAutoresizingMaskIntoConstraints = false
+        myLocationLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor, constant: 10.0).isActive = true
+        myLocationLabel.topAnchor.constraint(equalTo: distanceLabel.bottomAnchor, constant: 0).isActive = true
+        myLocationLabel.trailingAnchor.constraint(equalTo: margins.trailingAnchor, constant: 10.0).isActive = true
+        myLocationLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        myLocationLabel.textColor = UIColor.white
+        myLocationLabel.numberOfLines = 0
+        myLocationLabel.text = "My location = ??"
     }
     
     private func addAddressLabel() {
@@ -123,14 +143,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
         sceneView.addSubview(addressLabel)
         addressLabel.translatesAutoresizingMaskIntoConstraints = false
         addressLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor, constant: 10.0).isActive = true
-        addressLabel.topAnchor.constraint(equalTo: distanceLabel.bottomAnchor, constant: 10.0).isActive = true
+        addressLabel.topAnchor.constraint(equalTo: myLocationLabel.bottomAnchor, constant: 0).isActive = true
         addressLabel.trailingAnchor.constraint(equalTo: margins.trailingAnchor, constant: 10.0).isActive = true
         addressLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
         addressLabel.textColor = UIColor.white
         addressLabel.numberOfLines = 0
         addressLabel.text = "Address = ??"
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -229,12 +249,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
       func loopCoreMLUpdate() {
           // Continuously run CoreML whenever it's ready. (Preventing 'hiccups' in Frame Rate)
           
-          dispatchQueueML.async {
+          dispatchQueueML.async { [weak self] in
               // 1. Run Update.
-              self.updateCoreML()
+              self?.updateCoreML()
               
               // 2. Loop this function.
-              self.loopCoreMLUpdate()
+              DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                  self?.loopCoreMLUpdate()
+              }
           }
       }
     
@@ -252,6 +274,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     private func drawVisionRequestResults(_ results: [Any]) {
         CATransaction.begin()
         CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
+        guard detectionOverlay.sublayers == nil else {
+            return
+        }
         detectionOverlay.sublayers = nil // remove all the old recognized objects
         for observation in results where observation is RecognizedObject {
             guard let object = observation as? RecognizedObject else {
@@ -339,6 +364,80 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
 //        foundGrid.update(anchor: anchor as! ARPlaneAnchor)
 //    }
     
+    // MARK: GARSession
+
+    private func setUpGARSession() {
+        if garSession != nil {
+            return
+        }
+        
+        var error: NSError? = nil
+        do {
+            garSession = try GARSession(apiKey: "AIzaSyACzrx39hOcpVYabqSPDemv7_Sp9qfCVKs ", bundleIdentifier: nil)
+        } catch let garError {
+            error = garError as NSError
+        }
+
+        if error != nil {
+            print("Failed to create GARSession, error: ", error)
+            return
+        }
+        
+//        self.localizationState = LocalizationStateFailed;
+//
+        if garSession?.isGeospatialModeSupported(.enabled) != true {
+            print("GARGeospatialModeEnabled is not supported on this device.")
+            return
+        }
+
+        let configuration = GARSessionConfiguration()
+        configuration.geospatialMode = .enabled
+        garSession?.setConfiguration(configuration, error: &error)
+        
+        if error != nil {
+            print("Failed to create GARSession, error: ", error)
+            return
+        }
+        
+//        self.localizationState = LocalizationStateLocalizing;
+//        self.lastStartLocalizationDate = [NSDate date];
+    }
+    
+//    private func updateTrackingLabel() {
+//        if (self.localizationState == LocalizationStateFailed) {
+//            if (self.garFrame.earth.earthState != GAREarthStateEnabled) {
+//                NSString *earthState = [self stringFromGAREarthState:self.garFrame.earth.earthState];
+//                self.trackingLabel.text = [NSString stringWithFormat:@"Bad EarthState: %@", earthState];
+//            } else {
+//                self.trackingLabel.text = @"";
+//            }
+//            return;
+//        }
+//
+//        if (self.garFrame.earth.trackingState == GARTrackingStatePaused) {
+//            self.trackingLabel.text = @"Not tracking.";
+//            return;
+//        }
+//
+//        // This can't be nil if currently tracking and in a good EarthState.
+//        GARGeospatialTransform *geospatialTransform = self.garFrame.earth.cameraGeospatialTransform;
+//
+//        // Display heading in range [-180, 180], with 0=North, instead of [0, 360), as required by the
+//        // type CLLocationDirection.
+//        double heading = geospatialTransform.heading;
+//        if (heading > 180) {
+//            heading -= 360;
+//        }
+//
+//        // Note: the altitude value here is relative to the WGS84 ellipsoid (equivalent to
+//        // |CLLocation.ellipsoidalAltitude|).
+//        self.trackingLabel.text =
+//        [NSString stringWithFormat:kGeospatialTransformFormat,
+//         geospatialTransform.coordinate.latitude, geospatialTransform.coordinate.longitude,
+//         geospatialTransform.horizontalAccuracy, geospatialTransform.altitude,
+//         geospatialTransform.verticalAccuracy, heading, geospatialTransform.headingAccuracy];
+//    }
+    
     // MARK: CLLocationManager
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -348,6 +447,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         if status == .authorizedWhenInUse {
             locationManager.requestLocation()
+//            setUpGARSession()
+        } else {
+            locationManager.requestWhenInUseAuthorization()
         }
     }
     
@@ -358,6 +460,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, CLLocationManagerDele
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
             userLocation = location
+            myLocationLabel.text = "My location = " + location.coordinate.latitude.description + " " + location.coordinate.longitude.description
         }
         else {
             // No location was available.
